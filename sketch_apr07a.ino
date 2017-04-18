@@ -1,7 +1,6 @@
 #include <Ethernet.h>
 #include <SPI.h>
 
-
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 IPAddress ip(10, 160, 238, 17);
 IPAddress server(10,160,238,15); 
@@ -22,6 +21,7 @@ void setup()
   Serial.println(server);
   connect: Serial.println("connecting...");
   char functionCall[] = "setDO";
+  
 
   if(connectToServer()){
     executeTestcases();
@@ -37,17 +37,6 @@ void setup()
     Serial.println("retrying...");
     goto connect;
   }
-}
-
-void executeTestcases(){
-  /*
-  testDO();
-  testDI();
-  testPWM();
-  testPT100();
-  test20mAO();
-  validateMTFunctionCall(functionCall, sizeof(functionCall));
-  */
 }
 
 bool connectToServer(){
@@ -80,6 +69,97 @@ bool execMTFunctionCall(char *functionCall, size_t len){
         return true;
       }
       return false;
+}
+
+void executeTestcases(){
+  /*
+  enum pinmapping {
+    DO22 = 
+  }
+  testDO(); //klar-ish
+  testDI(); //klar-ish 
+  testPWM(); 
+  */
+  testPT100();
+  
+  /*
+  
+  test20mAO();
+  */
+}
+
+#define DO_PINS 8
+#define DIGITAL_OUT 2
+#define LAST_TEST_COMBINATION pow(2, (DO_PINS + 1) - 1)
+
+bool testDO(){
+  int pinsToTest[] = {};
+  int setPins[DO_PINS];
+  int readPins[DO_PINS];
+  int testCombination = 0;
+
+  // DE_MUX_A = 0; DE_MUX_B = 0 => DO_1
+  // DE_MUX_A = 0; DE_MUX_B = 1 => DO_0
+  // DE_MUX_A = 1; DE_MUX_B = 0 => DO_2
+  // DE_MUX_A = 1; DE_MUX_B = 1 => DO_3
+  DOTests: // comparing if the pins set are set to correct status
+    for(int i = 0; i < (DO_PINS - 1); i++){
+      execMTFunctionCall("setDO", sizeof("setDO"));  
+      client.write(pinsToTest[i]);
+      client.write(setPins[i]);
+      digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
+      digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
+      digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
+      readPins[i] = digitalRead(DIGITAL_IN);
+    }
+    
+    if(memcmp(setPins, readPins, sizeof(a)) != 0){
+      //handle not passing test
+    }
+  
+    //set new DO pin configuration (from all 0:s to all 1:s binary)
+    for (int i = (DO_PINS - 1); i >= 0; i--) {                
+        setPins[i] = (testCombination/((int)pow(2, i)))%2;
+    }
+    
+    if(testCombination != LAST_TEST_COMBINATION){
+      testCombination++;
+      goto DOTests;
+    }
+    
+    return true;
+}
+
+#define DI_PINS 4
+//SKA ÄNDRAS DÅ LATCHAR INFÖRS TILL NÄSTA REVISION PÅ DIGITAL_OUT
+bool testDI(){  
+  for(int i = 0; i < (DI_PINS - 1); i++){
+    digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
+    digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
+    
+    digitalWrite(DIGITAL_OUT, HIGH);
+    execMTFunctionCall("setDI", sizeof("setDI"));
+    client.write(i); //read from pin
+    while(!client.available()){}
+    if(client.read() != HIGH){
+      //handle failure
+    }
+    digitalWrite(DIGITAL_OUT, LOW);
+    execMTFunctionCall("setDI", sizeof("setDI"));
+    client.write(i); //read from pin
+    while(!client.available()){}
+    if(client.read() != LOW){
+      //handle failure
+    }
+  }
+}
+
+bool testPWM(){
+  //do on correct HW
+}
+
+bool testPT100(){
+  
 }
 
 void loop()
