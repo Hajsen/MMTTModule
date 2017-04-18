@@ -8,6 +8,10 @@ byte gateway[] = {10,160,238,1};
 byte subnet[]  = {255,255,255,0};
 bool debug = 1;
 
+#define DE_MUX_A 5
+#define DE_MUX_B 6
+#define DE_MUX_C 13
+
 EthernetClient client;
 
 void setup()
@@ -78,13 +82,13 @@ void executeTestcases(){
   }
   testDO(); //klar-ish
   testDI(); //klar-ish 
-  testPWM(); 
+  testPWM(); //klar-ish
+  testPT100(); //klar-ish
+   
   */
-  testPT100();
-  
   /*
   
-  test20mAO();
+  test20mAO(); //klar-ish
   */
 }
 
@@ -152,14 +156,59 @@ bool testDI(){
       //handle failure
     }
   }
+
+  return true;
 }
 
+#define PWM1 11
+#define PWM2 12
 bool testPWM(){
-  //do on correct HW
+  pinMode(PWM1, INPUT);
+  pinMode(PWM2, INPUT);
+  int duty_cycle;
+  
+  pwm_high = pulseIn(PWM1, HIGH);
+  pwm_low = pulseIn(PWM1, LOW);
+  duty_cycle = pwm_high/pwm_low;
+  if( !(0.301 > duty_cycle && duty_cycle > 0.299)){
+    //handle failure
+  }
+  pwm_high = pulseIn(PWM2, HIGH);
+  pwm_low = pulseIn(PWM2, LOW);
+  duty_cycle = pwm_high/pwm_low;
+  if( !(0.301 > duty_cycle && duty_cycle > 0.299)){
+    //handle failure
+  }
+  return true;
 }
 
+#define PT100 23;
+#define PT100_PINS 4;
 bool testPT100(){
   
+  for(int i = 0; i < (PT100_PINS - 1); i++){
+    digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
+    digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
+    digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
+    if(!(515 < analogRead(PT100) && analogRead(PT100) < 506)){
+      //handle failure
+    }
+  }
+  return true;
+}
+
+#define 20mAO_PINS 6;
+#define 20mAO 24;
+bool test20mAO(){
+  for(int i = 0; i < (20mAO_PINS - 1); i++){
+    digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
+    digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
+    digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
+    if(!(515 < analogRead(20mAO) && analogRead(20mAO) < 506)){
+      //handle failure
+    }
+  }
+  return true;
 }
 
 void loop()
