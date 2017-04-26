@@ -18,17 +18,16 @@ void setup()
 {
   Ethernet.begin(mac, ip, gateway, subnet);
   Serial.begin(9600);
-
+  
   delay(1000);
   
   Serial.println(Ethernet.localIP());
-  Serial.println(server);
   connect: Serial.println("connecting...");
-  char functionCall[] = "setDO";
+  //char functionCall[] = "setDO";
   
 
   if(connectToServer()){
-    executeTestcases();
+    executeTestcase();
     execMTFunctionCall("quit", sizeof("quit"));
   } else {
     Serial.println("connection failed");
@@ -94,6 +93,7 @@ void executeTestcases(){
 
 #define DO_PINS 8
 #define DIGITAL_OUT 2
+#define DIGITAL_IN 3
 #define LAST_TEST_COMBINATION pow(2, (DO_PINS + 1) - 1)
 
 bool testDO(){
@@ -117,7 +117,7 @@ bool testDO(){
       readPins[i] = digitalRead(DIGITAL_IN);
     }
     
-    if(memcmp(setPins, readPins, sizeof(a)) != 0){
+    if(memcmp(setPins, readPins, sizeof(setPins)) != 0){
       //handle not passing test
     }
   
@@ -162,10 +162,13 @@ bool testDI(){
 
 #define PWM1 11
 #define PWM2 12
+float pwm_high;
+float pwm_low;
+float duty_cycle;
+
 bool testPWM(){
   pinMode(PWM1, INPUT);
   pinMode(PWM2, INPUT);
-  int duty_cycle;
   
   pwm_high = pulseIn(PWM1, HIGH);
   pwm_low = pulseIn(PWM1, LOW);
@@ -182,8 +185,8 @@ bool testPWM(){
   return true;
 }
 
-#define PT100 23;
-#define PT100_PINS 4;
+#define PT100 23
+#define PT100_PINS 4
 bool testPT100(){
   
   for(int i = 0; i < (PT100_PINS - 1); i++){
@@ -197,14 +200,15 @@ bool testPT100(){
   return true;
 }
 
-#define 20mAO_PINS 6;
-#define 20mAO 24;
+#define mAO_PINS 6
+#define mAO 24
+
 bool test20mAO(){
-  for(int i = 0; i < (20mAO_PINS - 1); i++){
+  for(int i = 0; i < (mAO_PINS - 1); i++){
     digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
     digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
     digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
-    if(!(515 < analogRead(20mAO) && analogRead(20mAO) < 506)){
+    if(!(515 < analogRead(mAO) && analogRead(mAO) < 506)){
       //handle failure
     }
   }
