@@ -3,23 +3,24 @@
 void setup()
 {
   Serial.begin(9600);
-  //char functionCall[] = "setDO";
   canInit();
 }
 
 bool execMTFunctionCall(char *functionCall, size_t funclen){
     funclen -= 1;
-    sndCan(len, 1, 1);
+    sndCan(funclen, 1, 1);
     
     if(debug)
       Serial.print("Functioncall size of  ");
-      Serial.print(functionCall);
+      for(int i = 0; i < funclen; i++){
+        Serial.print(functionCall[i]);
+      }
       Serial.print(": ");
-      Serial.print(len);
+      Serial.print(funclen);
       Serial.println();
       
     sndCan(functionCall, funclen, 1);
-    sndCan(WFA, 1, 2);
+    sndCan(wfa, 1, 2);
     while(!(len = rcvCan()));
     if(funclen == len){        
       Serial.println("Successfull functionCall");
@@ -46,9 +47,15 @@ bool testDO(){
   // DE_MUX_A = 1; DE_MUX_B = 1 => DO_3
   DOTests: // comparing if the pins set are set to correct status
     for(int i = 0; i < (DO_PINS - 1); i++){
-      execMTFunctionCall("setDO", sizeof("setDO"));  
+      execMTFunctionCall("setDO", sizeof("setDO")); 
       sndCan(pinsToTest[i], 1, 2);
       sndCan(setPins[i], 1, 2);
+      sndCan(wfa, 1, 2);
+      while(!(len = rcvCan())); 
+      if(rxBuf[0] != setPins[i]){
+        //error setting on MT
+        Serial.println("Error MT");
+      }
       digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
       digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
       digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
@@ -57,6 +64,8 @@ bool testDO(){
     
     if(memcmp(setPins, readPins, sizeof(setPins)) != 0){
       //handle not passing test
+    } else {
+      
     }
   
     //set new DO pin configuration (from all 0:s to all 1:s binary)
@@ -68,7 +77,6 @@ bool testDO(){
       testCombination++;
       goto DOTests;
     }
-    
     return true;
 }
 
@@ -82,15 +90,15 @@ bool testDI(){
     digitalWrite(DIGITAL_OUT, HIGH);
     execMTFunctionCall("setDI", sizeof("setDI"));
     sndCan(i, 1, 2); //read from pin
-    sndCan(WFA, 1, 2);
+    sndCan(wfa, 1, 2);
     while(!(len = rcvCan()));
     if(rxBuf[0] != HIGH){
       //handle failure
-    }
+    } 
     digitalWrite(DIGITAL_OUT, LOW);
     execMTFunctionCall("setDI", sizeof("setDI"));
     sndCan(i, 1, 1); //read from pin
-    sndCan(WFA, 1, 2);
+    sndCan(wfa, 1, 2);
     while(!(len = rcvCan()));
     if(rxBuf[0] != LOW){
       //handle failure
@@ -128,7 +136,6 @@ bool testPWM(){
 #define PT100 23
 #define PT100_PINS 4
 bool testPT100(){
-  
   for(int i = 0; i < (PT100_PINS - 1); i++){
     digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
     digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
@@ -154,13 +161,16 @@ bool test20mAO(){
   return true;
 }
 
-void loop()
-{
+void loop() {
+  sndCan("testDO", 6, 1);
+  sndCan(eof, 1, 1);
   while(rcvFunc){
     while(!(len = rcvCan()));
     for(int i = 0; i < len; i++){
       if(rxBuf[i] == EOF){
         rcvFunc = false;
+      } else if(rxBuf[i] == 4){
+        continue;
       } else {
         functionToRun_len++;
         functionToRun[functionToRun_len - 1] = rxBuf[i];
@@ -168,14 +178,60 @@ void loop()
     }
   }
   runTest(functionToRun, functionToRun_len);
+  functionToRun_len = 0;
+  delay(10000);
 }
 
-void runTest(char *functionToRun, size_t functionToRun_len){
-  if(strcmp(functionToRun, "testDO")) testDO();
-  else if(strcmp(functionToRun, "testDI")) testDI();
-  else if(strcmp(functionToRun, "testPWM")) testPWM();
-  else if(strcmp(functionToRun, "testPT100")) testPT100();
-  else if(strcmp(functionToRun, "test20mAO")) test20mAO();
+void runTest(char *functionToRun, int functionToRun_len){
+  while(!Serial);
+  Serial.println();
+  Serial.println("Running test");
+  for(int i = 0; i < functionToRun_len; i++){
+    Serial.print(functionToRun[i]);
+  }
+  Serial.println();
+  if(cmpstr(functionToRun, "testDO", functionToRun_len)){
+    Serial.println("Running: testDO");
+    testDO();
+  }
+  else if(cmpstr(functionToRun, "testDI", functionToRun_len)){
+    Serial.println("Running: testDI");
+    testDI();
+  }
+  else if(cmpstr(functionToRun, "testPWM", functionToRun_len)){
+    Serial.println("Running: testPWM");
+    testPWM();
+  }
+  else if(cmpstr(functionToRun, "testPT100", functionToRun_len)){
+    Serial.println("Running: testPT100");
+    testPT100();
+  }
+  else if(cmpstr(functionToRun, "test20mAO", functionToRun_len)){
+    Serial.println("Running: test20mAO");
+    test20mAO();
+  }
+}
+
+// Very simple string comparison. 
+boolean cmpstr(char* function, char* func, int length)
+{
+  boolean result = false;
+  int tmp = 0;
+
+  // Compare length of string. Use the length of the longest string.
+  tmp = strlen(func);
+  if(tmp > length)
+    length = tmp;
+
+  // Compare the strings
+  for (int i = 0; i < length; i++)
+  {
+    if(function[i] == func[i])
+      result = true;
+    else 
+      return false;
+  }
+  return result;
 }
 
 //#################### CAN #################################################
@@ -197,6 +253,7 @@ int rcvCan(){
     } else {
       for(byte i = 0; i<len; i++){
         msgString[i] = rxBuf[i];
+        Serial.print(rxBuf[i]);
       }
     }    
     return len;
@@ -217,11 +274,12 @@ bool sndCan(byte *msg, int msg_len, int dest_id){
       
       q++;
     }
+    Serial.println(msg[i]);
     canbuffer[i%8] = msg[i];
   }
   
-  canbuffer[msg_len % 8] = EOT;
-  if(CAN0.sendMsgBuf(q, (msg_len + 1)%8, canbuffer) == CAN_OK)
+  canbuffer[msg_len % 8] = eot;
+  if(CAN0.sendMsgBuf(q, (msg_len)%8 + 1, canbuffer) == CAN_OK)
     Serial.println("CAN - Message Sent Successfully!");
   else
     Serial.println("Error Sending CAN - Message...");

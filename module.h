@@ -6,9 +6,11 @@
 
 bool debug = 1;
 
-#define DE_MUX_A 5
-#define DE_MUX_B 6
-#define DE_MUX_C 13
+char eof[] = "\3"; //end of function
+char eot[] = "\4"; //end of transmission
+char sor[] = "\5"; //start of result
+char eor[] = "\6"; //end of result
+char wfa[] = "\7"; //wait for answer
 
 #define EOF 3 //end of function
 #define EOT 4 //end of transmission
@@ -16,6 +18,9 @@ bool debug = 1;
 #define EOR 6 //end of result
 #define WFA 7 //wait for answer
 
+#define DE_MUX_A 5
+#define DE_MUX_B 6
+#define DE_MUX_C 13
 // CAN0 INT and CS
 #define CAN0_INT 2                              // Set INT to pin 2
 
@@ -24,6 +29,7 @@ MCP_CAN CAN0(11);                               // Set CS to pin 11
 char functionToRun[30];
 size_t functionToRun_len;
 bool rcvFunc = true;
+void runTest(char *functionToRun);
 
 // CAN RX Variables
 long unsigned int rxId;
