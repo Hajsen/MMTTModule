@@ -2,8 +2,9 @@
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   canInit();
+  while(!Serial){}
 }
 
 bool execMTFunctionCall(char *functionCall, size_t funclen){
@@ -41,6 +42,7 @@ bool testDO(){
   int readPins[DO_PINS];
   int testCombination = 0;
 
+  char result[128];
   // DE_MUX_A = 0; DE_MUX_B = 0 => DO_1
   // DE_MUX_A = 0; DE_MUX_B = 1 => DO_0
   // DE_MUX_A = 1; DE_MUX_B = 0 => DO_2
@@ -48,6 +50,7 @@ bool testDO(){
   DOTests: // comparing if the pins set are set to correct status
     for(int i = 0; i < (DO_PINS - 1); i++){
       execMTFunctionCall("setDO", sizeof("setDO")); 
+      
       sndCan(pinsToTest[i], 1, 2);
       sndCan(setPins[i], 1, 2);
       sndCan(wfa, 1, 2);
@@ -64,8 +67,7 @@ bool testDO(){
     
     if(memcmp(setPins, readPins, sizeof(setPins)) != 0){
       //handle not passing test
-    } else {
-      
+      results[testCombination] = false;
     }
   
     //set new DO pin configuration (from all 0:s to all 1:s binary)
@@ -77,6 +79,20 @@ bool testDO(){
       testCombination++;
       goto DOTests;
     }
+
+    //start of results
+    sndCan(sor, 1, 1);
+    sndCan("<TestResponse> <TestCase> testDO </TestCase> <Data>", strlen("<TestResponse> <TestCase> testDO </TestCase> <Data>"), 1);
+    for(int i = 0; i < testCombination; i++){
+      sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
+      sndCan(i, 1, 1);
+      sndCan("\">", strlen("\">"), 1); 
+      sndCan(results[i], 1, 1);
+      sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
+    }
+    sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
+    sndCan(eor, 1, 1);
+    
     return true;
 }
 
@@ -94,6 +110,7 @@ bool testDI(){
     while(!(len = rcvCan()));
     if(rxBuf[0] != HIGH){
       //handle failure
+      results[i] = false;
     } 
     digitalWrite(DIGITAL_OUT, LOW);
     execMTFunctionCall("setDI", sizeof("setDI"));
@@ -102,9 +119,22 @@ bool testDI(){
     while(!(len = rcvCan()));
     if(rxBuf[0] != LOW){
       //handle failure
+      results[DI_PINS + i] = false;
     }
   }
 
+  //start of results
+  sndCan(sor, 1, 1);
+  sndCan("<TestResponse> <TestCase> testDI </TestCase> <Data>", strlen("<TestResponse> <TestCase> testDI </TestCase> <Data>"), 1);
+  for(int i = 0; i < DI_PINS*2 - 1; i++){
+    sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
+    sndCan(i, 1, 1); 
+    sndCan("\">", strlen("\">"), 1); 
+    sndCan(results[i], 1, 1);
+    sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
+  }
+  sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
+  sndCan(eor, 1, 1);
   return true;
 }
 
@@ -123,13 +153,28 @@ bool testPWM(){
   duty_cycle = pwm_high/pwm_low;
   if( !(0.301 > duty_cycle && duty_cycle > 0.299)){
     //handle failure
+    results[0] = false;
   }
   pwm_high = pulseIn(PWM2, HIGH);
   pwm_low = pulseIn(PWM2, LOW);
   duty_cycle = pwm_high/pwm_low;
   if( !(0.301 > duty_cycle && duty_cycle > 0.299)){
     //handle failure
+    results[1] = false;
   }
+
+  //start of results
+  sndCan(sor, 1, 1);
+  sndCan("<TestResponse> <TestCase> testPWM </TestCase> <Data>", strlen("<TestResponse> <TestCase> testPWM </TestCase> <Data>"), 1);
+  for(int i = 0; i < 2; i++){
+    sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
+    sndCan(i, 1, 1);
+    sndCan("\">", "\">", 1);
+    sndCan(results[i], 1, 1);
+    sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
+  }
+  sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
+  sndCan(eor, 1, 1);
   return true;
 }
 
@@ -142,8 +187,22 @@ bool testPT100(){
     digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
     if(!(515 < analogRead(PT100) && analogRead(PT100) < 506)){
       //handle failure
+      results[i] = false;
     }
   }
+  
+  //start of results
+  sndCan(sor, 1, 1);
+  sndCan("<TestResponse> <TestCase> testPT100 </TestCase> <Data>", strlen("<TestResponse> <TestCase> testPT100 </TestCase> <Data>"), 1);
+  for(int i = 0; i < 2; i++){
+    sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
+    sndCan(i, 1, 1);
+    sndCan("\">", strlen("\">"), 1);
+    sndCan(results[i], 1, 1);
+    sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
+  }
+  sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
+  sndCan(eor, 1, 1);
   return true;
 }
 
@@ -156,8 +215,22 @@ bool test20mAO(){
     digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
     if(!(515 < analogRead(mAO) && analogRead(mAO) < 506)){
       //handle failure
+      results[i] = false;
     }
   }
+  
+  //start of results
+  sndCan(sor, 1, 1);
+  sndCan("<TestResponse> <TestCase> testPWM </TestCase> <Data>", strlen("<TestResponse> <TestCase> testPWM </TestCase> <Data>"), 1);
+  for(int i = 0; i < mAO_PINS; i++){
+    sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
+    sndCan(i, 1, 1);
+    sndCan("\">", strlen("\">"), 1);
+    sndCan(results[i], 1, 1);
+    sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
+  }
+  sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
+  sndCan(eor, 1, 1);
   return true;
 }
 
@@ -186,6 +259,7 @@ void runTest(char *functionToRun, int functionToRun_len){
   while(!Serial);
   Serial.println();
   Serial.println("Running test");
+  
   for(int i = 0; i < functionToRun_len; i++){
     Serial.print(functionToRun[i]);
   }
@@ -246,16 +320,18 @@ int rcvCan(){
       sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, len);
     //Serial.print(len);
     */
-    
+    Serial.print("RxBuf: ");
     if((rxId & 0x40000000) == 0x40000000){            // Determine if message is a remote request frame.
       sprintf(msgString, " REMOTE REQUEST FRAME");
       //Serial.print(msgString);
     } else {
       for(byte i = 0; i<len; i++){
         msgString[i] = rxBuf[i];
+        while(!Serial){}
         Serial.print(rxBuf[i]);
       }
     }    
+    delay(500);
     return len;
   }
   return 0;

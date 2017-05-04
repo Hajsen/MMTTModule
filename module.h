@@ -31,6 +31,8 @@ size_t functionToRun_len;
 bool rcvFunc = true;
 void runTest(char *functionToRun);
 
+int results[20] = {true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true};
+
 // CAN RX Variables
 long unsigned int rxId;
 unsigned char len;
