@@ -371,6 +371,7 @@ void canInit(){
   
   // Since we do not set NORMAL mode, we are in loopback mode by default.
   //CAN0.setMode(MCP_NORMAL);
+  CAN0.setMode(MCP_LOOPBACK);
 
   pinMode(CAN0_INT, INPUT);                           // Configuring pin for /INT input
 }
