@@ -197,16 +197,16 @@ void loop() {
   Serial.read();  
   Serial.println("Running testDI()");
   testDI();
-  Serial.println("Press enter to run PWM");
-  while(Serial.available() == 0){}
-  Serial.read();
-  Serial.println("Running testPWM()"); 
-  testPWM();
   Serial.println("Press enter to run 20mAO");
   while(Serial.available() == 0){}
   Serial.read();  
   Serial.println("Running test20mAO()"); 
   test20mAO();
+  Serial.println("Press enter to run PWM");
+  while(Serial.available() == 0){}
+  Serial.read();
+  Serial.println("Running testPWM()"); 
+  testPWM();
   Serial.println("Press enter to run pt100");
   while(Serial.available() == 0){}
   Serial.read();  
