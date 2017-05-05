@@ -71,54 +71,34 @@ bool testDI(){
 
 #define DIGITAL_OUT 0
 #define DI_PINS 4
-//SKA ÄNDRAS DÅ LATCHAR INFÖRS TILL NÄSTA REVISION PÅ DIGITAL_OUT
-bool testDO(){  
-  for(int i = 0; i < (DI_PINS - 1); i++){
+bool testDO(){
+  Serial.println("Testing DO HIGH");    
+  digitalWrite(DIGITAL_OUT, HIGH);
+  for(int i = 0; i < (DI_PINS - 1); i+=2){
+    Serial.println("Testing pin: ");
+    Serial.print(i);
     digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
     digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
-
-    //execMTFunctionCall("setDO", sizeof("setDO"));
-    digitalWrite(DIGITAL_OUT, HIGH);
-    //execMTFunctionCall("readDI", sizeof("readDI"));
-    //sndCan(i, 1, 2); //read from pin
-    //sndCan(wfa, 1, 2);
-    while(!(len = rcvCan()));
-    if(rxBuf[0] != HIGH){
-      //handle failure
-      results[i] = false;
-    } 
-    digitalWrite(DIGITAL_OUT, LOW);
-    //execMTFunctionCall("setDI", sizeof("setDI"));
-    //sndCan(i, 1, 1); //read from pin
-    //sndCan(wfa, 1, 2);
-    /*
-    while(!(len = rcvCan()));
-    if(rxBuf[0] != LOW){
-      //handle failure
-      results[DI_PINS + i] = false;
-    }
-    */
+    Serial.println("Press enter to go to next pin!");
+    while(Serial.available() == 0){}
   }
-
-  //start of results
-  /*
-  sndCan(sor, 1, 1);
-  sndCan("<TestResponse> <TestCase> testDI </TestCase> <Data>", strlen("<TestResponse> <TestCase> testDI </TestCase> <Data>"), 1);
-  for(int i = 0; i < DI_PINS*2 - 1; i++){
-    sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
-    sndCan(i, 1, 1); 
-    sndCan("\">", strlen("\">"), 1); 
-    sndCan(results[i], 1, 1);
-    sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
+  Serial.println("Press enter to go to next test!");
+  while(Serial.available() == 0){}
+  Serial.println("Testing DO HIGH");
+  digitalWrite(DIGITAL_OUT, LOW);
+  for(int i = 0; i < (DI_PINS - 1); i+=2){
+    Serial.println("Testing pin: ");
+    Serial.print(i);
+    digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
+    digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
   }
-  sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
-  sndCan(eor, 1, 1);
-  */
+}
+
   return true;
 }
 
-#define PWM1 11
-#define PWM2 12
+#define PWM1 5
+#define PWM2 6
 float pwm_high;
 float pwm_low;
 float duty_cycle;
@@ -126,7 +106,8 @@ float duty_cycle;
 bool testPWM(){
   pinMode(PWM1, INPUT);
   pinMode(PWM2, INPUT);
-  
+
+  Serial.println("Testing PWM1");
   pwm_high = pulseIn(PWM1, HIGH);
   pwm_low = pulseIn(PWM1, LOW);
   duty_cycle = pwm_high/pwm_low;
@@ -134,7 +115,10 @@ bool testPWM(){
     //handle failure
     results[0] = false;
   }
-  
+  Serial.println("Result: ");
+  Serial.print(results[0]);
+
+  Serial.println("Testing PWM2");
   pwm_high = pulseIn(PWM2, HIGH);
   pwm_low = pulseIn(PWM2, LOW);
   duty_cycle = pwm_high/pwm_low;
@@ -142,25 +126,13 @@ bool testPWM(){
     //handle failure
     results[1] = false;
   }
-
-  //start of results
-  /*
-  sndCan(sor, 1, 1);
-  sndCan("<TestResponse> <TestCase> testPWM </TestCase> <Data>", strlen("<TestResponse> <TestCase> testPWM </TestCase> <Data>"), 1);
-  for(int i = 0; i < 2; i++){
-    sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
-    sndCan(i, 1, 1);
-    sndCan("\">", "\">", 1);
-    sndCan(results[i], 1, 1);
-    sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
-  }
-  sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
-  sndCan(eor, 1, 1);
-  */
+  Serial.println("Result: ");
+  Serial.print(results[1]);
+  
   return true;
 }
 
-#define PT100 23
+#define PT100 0
 #define PT100_PINS 4
 bool testPT100(){
   for(int i = 0; i < (PT100_PINS - 1); i++){
@@ -172,21 +144,6 @@ bool testPT100(){
       results[i] = false;
     }
   }
-  
-  //start of results
-  /*
-  sndCan(sor, 1, 1);
-  sndCan("<TestResponse> <TestCase> testPT100 </TestCase> <Data>", strlen("<TestResponse> <TestCase> testPT100 </TestCase> <Data>"), 1);
-  for(int i = 0; i < 2; i++){
-    sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
-    sndCan(i, 1, 1);
-    sndCan("\">", strlen("\">"), 1);
-    sndCan(results[i], 1, 1);
-    sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
-  }
-  sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
-  sndCan(eor, 1, 1);
-  */
   return true;
 }
 
@@ -226,27 +183,15 @@ void setPinModes(){
  pinMode(DE_MUX_C, OUTPUT);
 }
 void loop() {
+  Serial.println("Running testDI()");
   testDI();
-  /*
-  sndCan("testDO", 6, 1);
-  sndCan(eof, 1, 1);
-  while(rcvFunc){
-    while(!(len = rcvCan()));
-    for(int i = 0; i < len; i++){
-      if(rxBuf[i] == EOF){
-        rcvFunc = false;
-      } else if(rxBuf[i] == 4){
-        continue;
-      } else {
-        functionToRun_len++;
-        functionToRun[functionToRun_len - 1] = rxBuf[i];
-      }
-    }
-  }
-  runTest(functionToRun, functionToRun_len);
-  functionToRun_len = 0;
-  delay(10000);
-  */
+  Serial.println("Press enter to run PWM");
+  while(Serial.available() == 0){}
+  Serial.read();  
+  testPWM();
+  Serial.println("Press enter to run PWM");
+  while(Serial.available() == 0){}
+  Serial.read();  
 }
 
 void runTest(char *functionToRun, int functionToRun_len){
