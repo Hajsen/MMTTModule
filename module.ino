@@ -38,6 +38,7 @@ bool execMTFunctionCall(char *functionCall, size_t funclen){
 bool testDI(){
   int readPins[DO_PINS];
   int testCombination = 0;
+  pinMode(DIGITAL_IN, INPUT);
 
   char result[128];
   for(int q = 0; q < 2; q++){
@@ -72,6 +73,7 @@ bool testDI(){
 #define DIGITAL_OUT 0
 #define DI_PINS 4
 bool testDO(){
+  pinMode(DIGITAL_OUT, OUTPUT);
   Serial.println("Testing DO HIGH");    
   digitalWrite(DIGITAL_OUT, HIGH);
   for(int i = 0; i < (DI_PINS - 1); i+=2){
@@ -92,8 +94,6 @@ bool testDO(){
     digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
     digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
   }
-}
-
   return true;
 }
 
@@ -135,6 +135,7 @@ bool testPWM(){
 #define PT100 0
 #define PT100_PINS 4
 bool testPT100(){
+  pinMode(PT100, INPUT);
   Serial.println("Checking if voltage is correct from pt100, should be 2.5V");
   for(int i = 0; i < (PT100_PINS - 1); i++){
     digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
@@ -147,9 +148,9 @@ bool testPT100(){
     }
     Serial.println("On PT100 pin: ");
     Serial.print(i);
-    Serial.print(" Result: ");
+    Serial.print(" | Result: ");
     Serial.print(pt100AValue);
-    Serial.print(" Passed: ");
+    Serial.print(" | Passed: ");
     Serial.print(results[i]);
     Serial.println();
   }
@@ -157,32 +158,28 @@ bool testPT100(){
 }
 
 #define mAO_PINS 6
-#define mAO 24
+#define mAO 1
 bool test20mAO(){
+  pinMode(mAO, INPUT);
   for(int i = 0; i < (mAO_PINS - 1); i++){
     digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
     digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
     digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
-    if(!(515 < analogRead(mAO) && analogRead(mAO) < 506)){
+    int valuemAO = analogRead(mAO);
+    if(!(515 < valuemAO && valuemAO < 506)){
       //handle failure
       results[i] = false;
     }
+    Serial.println("On mAO pin: ");
+    Serial.print(i);
+    Serial.print(" | Result: ");
+    Serial.print(valuemAO);
+    Serial.print(" | Passed: ");
+    Serial.print(results[i]);
+    Serial.println();
+    while(Serial.available() == 0){}
+    Serial.read();
   }
-  
-  //start of results
-  /*
-  sndCan(sor, 1, 1);
-  sndCan("<TestResponse> <TestCase> testPWM </TestCase> <Data>", strlen("<TestResponse> <TestCase> testPWM </TestCase> <Data>"), 1);
-  for(int i = 0; i < mAO_PINS; i++){
-    sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
-    sndCan(i, 1, 1);
-    sndCan("\">", strlen("\">"), 1);
-    sndCan(results[i], 1, 1);
-    sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
-  }
-  sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
-  sndCan(eor, 1, 1);
-  */
   return true;
 }
 
@@ -191,16 +188,30 @@ void setPinModes(){
  pinMode(DE_MUX_B, OUTPUT);
  pinMode(DE_MUX_C, OUTPUT);
 }
+
 void loop() {
+  Serial.println("Running testDO()");
+  testDO();
+  Serial.println("Press enter to run DI");
+  while(Serial.available() == 0){}
+  Serial.read();  
   Serial.println("Running testDI()");
   testDI();
   Serial.println("Press enter to run PWM");
   while(Serial.available() == 0){}
-  Serial.read();  
+  Serial.read();
+  Serial.println("Running testPWM()"); 
   testPWM();
-  Serial.println("Press enter to run PWM");
+  Serial.println("Press enter to run 20mAO");
   while(Serial.available() == 0){}
   Serial.read();  
+  Serial.println("Running test20mAO()"); 
+  test20mAO();
+  Serial.println("Press enter to run pt100");
+  while(Serial.available() == 0){}
+  Serial.read();  
+  Serial.println("Running pt100()");
+  testPT100();
 }
 
 void runTest(char *functionToRun, int functionToRun_len){

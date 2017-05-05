@@ -29,8 +29,11 @@ MCP_CAN CAN0(10);                               // Set CS to pin 11
 char functionToRun[30];
 size_t functionToRun_len;
 bool rcvFunc = true;
-void runTest(char *functionToRun);
-void setPinModes();
+boolean testDO();
+boolean testDI();
+boolean testPWM();
+boolean testPT100();
+boolean test20mAO();
 
 int results[20] = {true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true};
 
