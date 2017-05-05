@@ -135,14 +135,23 @@ bool testPWM(){
 #define PT100 0
 #define PT100_PINS 4
 bool testPT100(){
+  Serial.println("Checking if voltage is correct from pt100, should be 2.5V");
   for(int i = 0; i < (PT100_PINS - 1); i++){
     digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
     digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
     digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
-    if(!(515 < analogRead(PT100) && analogRead(PT100) < 506)){
+    int pt100AValue = analogRead(PT100);
+    if(!(515 < pt100AValue && pt100AValue < 506)){
       //handle failure
       results[i] = false;
     }
+    Serial.println("On PT100 pin: ");
+    Serial.print(i);
+    Serial.print(" Result: ");
+    Serial.print(pt100AValue);
+    Serial.print(" Passed: ");
+    Serial.print(results[i]);
+    Serial.println();
   }
   return true;
 }
