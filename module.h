@@ -18,9 +18,9 @@ char wfa[] = "\7"; //wait for answer
 #define EOR 6 //end of result
 #define WFA 7 //wait for answer
 
-#define DE_MUX_A 5
-#define DE_MUX_B 6
-#define DE_MUX_C 13
+#define DE_MUX_A 3
+#define DE_MUX_B 4
+#define DE_MUX_C 7
 // CAN0 INT and CS
 #define CAN0_INT 8                              // Set INT to pin 2
 
@@ -30,6 +30,7 @@ char functionToRun[30];
 size_t functionToRun_len;
 bool rcvFunc = true;
 void runTest(char *functionToRun);
+void setPinModes();
 
 int results[20] = {true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true};
 
