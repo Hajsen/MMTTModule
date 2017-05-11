@@ -235,10 +235,10 @@ bool test20mAO(){
 }
 
 void loop() {
-  sndCan("testDO", 6, 1);
-  sndCan(eof, 1, 1);
+  delay(10000);
+  sndCan(0x05, 1, 1);
   while(rcvFunc){
-    while(!(len = rcvCan()));
+    len = rcvCan();
     for(int i = 0; i < len; i++){
       if(rxBuf[i] == EOF){
         rcvFunc = false;
@@ -249,9 +249,12 @@ void loop() {
         functionToRun[functionToRun_len - 1] = rxBuf[i];
       }
     }
+    delay(50);
   }
+  /*
   runTest(functionToRun, functionToRun_len);
   functionToRun_len = 0;
+  */
   delay(10000);
 }
 
@@ -320,16 +323,17 @@ int rcvCan(){
       sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, len);
     //Serial.print(len);
     */
-    Serial.print("RxBuf: ");
     if((rxId & 0x40000000) == 0x40000000){            // Determine if message is a remote request frame.
       sprintf(msgString, " REMOTE REQUEST FRAME");
       //Serial.print(msgString);
     } else {
+      Serial.print("RxBuf: ");
       for(byte i = 0; i<len; i++){
         msgString[i] = rxBuf[i];
         while(!Serial){}
-        Serial.print(rxBuf[i]);
+        Serial.print((int)rxBuf[i]);
       }
+      Serial.println();
     }    
     delay(500);
     return len;
@@ -350,7 +354,7 @@ bool sndCan(byte *msg, int msg_len, int dest_id){
       
       q++;
     }
-    Serial.println(msg[i]);
+    //Serial.println(msg[i]);
     canbuffer[i%8] = msg[i];
   }
   
@@ -370,8 +374,8 @@ void canInit(){
     Serial.println("Error Initializing MCP2515...");
   
   // Since we do not set NORMAL mode, we are in loopback mode by default.
-  //CAN0.setMode(MCP_NORMAL);
-  CAN0.setMode(MCP_LOOPBACK);
+  CAN0.setMode(MCP_NORMAL);
+  //CAN0.setMode(MCP_LOOPBACK);
 
   pinMode(CAN0_INT, INPUT);                           // Configuring pin for /INT input
 }
