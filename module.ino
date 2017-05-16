@@ -289,30 +289,29 @@ bool test20mAO(){
 
 void loop() {
   while(rcvFunc){
-    len = rcvCan();
+    Serial.println("lol");
+    while(!(len = rcvCan()));
     for(int i = 0; i < len; i++){
       if(rxBuf[i] == EOF){
+        Serial.println("LOLOLOLL");
         rcvFunc = false;
       } else if(rxBuf[i] == 4){
         continue;
-      } else {
+      } else if(sanitizepayload(rxBuf[i])){
         functionToRun[functionToRun_len] = rxBuf[i];
+        Serial.println(functionToRun[functionToRun_len]);
         functionToRun_len++;
-        Serial.print(functionToRun[functionToRun_len]);
       }
     }
     delay(50);
   }
-  Serial.println(" - Func to run");
   runTest(functionToRun, functionToRun_len);
   functionToRun_len = 0;
-  delay(10000);
+  while(true);
 }
 
 void runTest(char *functionToRun, int functionToRun_len){
-  while(!Serial);
   Serial.println("Running test");
- 
   for(int i = 0; i < functionToRun_len; i++){
     Serial.print(functionToRun[i]);
   }
