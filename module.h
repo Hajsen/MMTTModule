@@ -6,17 +6,17 @@
 
 bool debug = 1;
 
-char eof[] = "\3"; //end of function
-char eot[] = "\4"; //end of transmission
-char sor[] = "\5"; //start of result
-char eor[] = "\6"; //end of result
-char wfa[] = "\7"; //wait for answer
+byte eof[1] = {255}; //end of function
+byte eot[1] = {254}; //end of transmission
+byte sor[1] = {253}; //start of result
+byte eor[1] = {252}; //end of result
+byte wfa[1] = {251}; //wait for answer
 
-#define EOF 3 //end of function
-#define EOT 4 //end of transmission
-#define SOR 5 //start of result
-#define EOR 6 //end of result
-#define WFA 7 //wait for answer
+#define EOF 255 //end of function
+#define EOT 254 //end of transmission
+#define SOR 253 //start of result
+#define EOR 252 //end of result
+#define WFA 251 //wait for answer
 
 #define DE_MUX_A 5
 #define DE_MUX_B 6
@@ -30,6 +30,7 @@ char functionToRun[30];
 size_t functionToRun_len;
 bool rcvFunc = true;
 void runTest(char *functionToRun);
+bool sanitizepayload(int nextbyte);
 
 int results[20] = {true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true};
 
@@ -37,6 +38,7 @@ int results[20] = {true, true, true, true, true, true, true, true, true, true, t
 long unsigned int rxId;
 unsigned char len;
 unsigned char rxBuf[8];
+byte temp;
 
 // Serial Output String Buffer
 char msgString[128];

@@ -7,27 +7,34 @@ void setup()
   while(!Serial){}
 }
 
+bool sanitizepayload(int nextbyte){
+  //check if number, uppercase or lowercase
+  return ((48 <= nextbyte & nextbyte <= 57 ) | (65 <= nextbyte & nextbyte <= 90) | (97 <= nextbyte & nextbyte <= 122));
+}
+
 bool execMTFunctionCall(char *functionCall, size_t funclen){
-    funclen -= 1;
-    sndCan(funclen, 1, 1);
-    
-    if(debug)
-      Serial.print("Functioncall size of  ");
-      for(int i = 0; i < funclen; i++){
-        Serial.print(functionCall[i]);
-      }
-      Serial.print(": ");
-      Serial.print(funclen);
-      Serial.println();
-      
-    sndCan(functionCall, funclen, 1);
-    sndCan(wfa, 1, 2);
-    while(!(len = rcvCan()));
-    if(funclen == len){        
-      Serial.println("Successfull functionCall");
-      return true;
+  byte charlen = funclen;
+  sndCan(&charlen, 1, 2);
+  
+  if(debug)
+    Serial.print("Functioncall size of  ");
+    for(int i = 0; i < funclen; i++){
+      Serial.print(functionCall[i]);
     }
-    return false;
+    Serial.print(": ");
+    Serial.print(funclen);
+    Serial.println();
+    
+  sndCan(functionCall, funclen, 1);
+  sndCan(wfa, 1, 2);
+  while(!(len = rcvCan()));
+  Serial.print("Len rcvd back: ");
+  Serial.println(rxBuf[0]);
+  if(funclen == rxBuf[0]){        
+    Serial.println("Successfull functionCall");
+    return true;
+  }
+  return false;
 }
 
 
@@ -49,7 +56,7 @@ bool testDO(){
   // DE_MUX_A = 1; DE_MUX_B = 1 => DO_3
   DOTests: // comparing if the pins set are set to correct status
     for(int i = 0; i < (DO_PINS - 1); i++){
-      execMTFunctionCall("setDO", sizeof("setDO")); 
+      execMTFunctionCall("setDO", 5); 
       
       sndCan(pinsToTest[i], 1, 2);
       sndCan(setPins[i], 1, 2);
@@ -99,38 +106,81 @@ bool testDO(){
 #define DI_PINS 4
 //SKA ÄNDRAS DÅ LATCHAR INFÖRS TILL NÄSTA REVISION PÅ DIGITAL_OUT
 bool testDI(){  
-  for(int i = 0; i < (DI_PINS - 1); i++){
+  for(byte i = 0; i < DI_PINS; i++){
     digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
     digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
     
     digitalWrite(DIGITAL_OUT, HIGH);
-    execMTFunctionCall("setDI", sizeof("setDI"));
-    sndCan(i, 1, 2); //read from pin
+    execMTFunctionCall("readA", 5);
+    Serial.print("sending HIGH Pin: ");
+    sndCan((int)8, 1, 2); //read from pin
     sndCan(wfa, 1, 2);
     while(!(len = rcvCan()));
-    if(rxBuf[0] != HIGH){
-      //handle failure
+    int result = 0;
+    int result_pos = 0;
+    for(int i = len; i >= 0; i--){
+      Serial.print("rxBuf ");
+      Serial.print(i);
+      Serial.print(" : ");
+      Serial.println(rxBuf[i]);
+      if(rxBuf[i] > 47 && rxBuf[i] < 58){
+        result += (rxBuf[i] - 48) * pow(10, result_pos++);
+        //sndCan(wfa, 1, 2);
+        Serial.print("PART Result: ");
+        Serial.println(result);
+        rcvCan();
+        delay(100);
+      }
+    }
+    Serial.print("Result: ");
+    Serial.println(result);
+    if(result < 1020){
       results[i] = false;
-    } 
+    } else {
+      results[i] = true;
+    }
+    
+    result_pos = 0;
+    result = 0;
+    
     digitalWrite(DIGITAL_OUT, LOW);
-    execMTFunctionCall("setDI", sizeof("setDI"));
-    sndCan(i, 1, 1); //read from pin
+    execMTFunctionCall("readA", 5);
+    
+    Serial.print("sending LOW Pin: ");
+    sndCan(0x08, 1, 1); //read from pin
     sndCan(wfa, 1, 2);
+    
     while(!(len = rcvCan()));
-    if(rxBuf[0] != LOW){
-      //handle failure
-      results[DI_PINS + i] = false;
+       for(int i = len; i >= 0; i--){
+      Serial.print("rxBuf ");
+      Serial.print(i);
+      Serial.print(" : ");
+      Serial.println(rxBuf[i]);
+      if(rxBuf[i] > 47 && rxBuf[i] < 58){
+        result += (rxBuf[i] - 48) * pow(10, result_pos++);
+        //sndCan(wfa, 1, 2);
+        Serial.print("PART Result: ");
+        Serial.println(result);
+        rcvCan();
+        delay(100);
+      }
+    }
+    if(result < 1020){
+      results[i + DI_PINS] = false;
+    } else{
+      results[i + DI_PINS] = true;
     }
   }
 
   //start of results
   sndCan(sor, 1, 1);
   sndCan("<TestResponse> <TestCase> testDI </TestCase> <Data>", strlen("<TestResponse> <TestCase> testDI </TestCase> <Data>"), 1);
-  for(int i = 0; i < DI_PINS*2 - 1; i++){
+  for(byte i = 0; i < DI_PINS*2; i++){
     sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
-    sndCan(i, 1, 1); 
+    sndCan(&i, 1, 1); 
     sndCan("\">", strlen("\">"), 1); 
-    sndCan(results[i], 1, 1);
+    temp = results[i];
+    sndCan(&temp, 1, 1);
     sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
   }
   sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
@@ -166,11 +216,12 @@ bool testPWM(){
   //start of results
   sndCan(sor, 1, 1);
   sndCan("<TestResponse> <TestCase> testPWM </TestCase> <Data>", strlen("<TestResponse> <TestCase> testPWM </TestCase> <Data>"), 1);
-  for(int i = 0; i < 2; i++){
+  for(byte i = 0; i < 2; i++){
     sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
-    sndCan(i, 1, 1);
+    sndCan(&i, 1, 1);
     sndCan("\">", "\">", 1);
-    sndCan(results[i], 1, 1);
+    temp = results[i];
+    sndCan(&temp, 1, 1);
     sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
   }
   sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
@@ -194,11 +245,12 @@ bool testPT100(){
   //start of results
   sndCan(sor, 1, 1);
   sndCan("<TestResponse> <TestCase> testPT100 </TestCase> <Data>", strlen("<TestResponse> <TestCase> testPT100 </TestCase> <Data>"), 1);
-  for(int i = 0; i < 2; i++){
+  for(byte i = 0; i < 2; i++){
     sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
-    sndCan(i, 1, 1);
+    sndCan(&i, 1, 1);
     sndCan("\">", strlen("\">"), 1);
-    sndCan(results[i], 1, 1);
+    temp = results[i];
+    sndCan(&temp, 1, 1);
     sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
   }
   sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
@@ -226,7 +278,8 @@ bool test20mAO(){
     sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
     sndCan(i, 1, 1);
     sndCan("\">", strlen("\">"), 1);
-    sndCan(results[i], 1, 1);
+    temp = results[i];
+    sndCan(&temp, 1, 1);
     sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
   }
   sndCan("</Data></TestResponse>", strlen("</Data></TestResponse>"), 1);
@@ -235,8 +288,6 @@ bool test20mAO(){
 }
 
 void loop() {
-  delay(10000);
-  sndCan(0x05, 1, 1);
   while(rcvFunc){
     len = rcvCan();
     for(int i = 0; i < len; i++){
@@ -245,24 +296,23 @@ void loop() {
       } else if(rxBuf[i] == 4){
         continue;
       } else {
+        functionToRun[functionToRun_len] = rxBuf[i];
         functionToRun_len++;
-        functionToRun[functionToRun_len - 1] = rxBuf[i];
+        Serial.print(functionToRun[functionToRun_len]);
       }
     }
     delay(50);
   }
-  /*
+  Serial.println(" - Func to run");
   runTest(functionToRun, functionToRun_len);
   functionToRun_len = 0;
-  */
   delay(10000);
 }
 
 void runTest(char *functionToRun, int functionToRun_len){
   while(!Serial);
-  Serial.println();
   Serial.println("Running test");
-  
+ 
   for(int i = 0; i < functionToRun_len; i++){
     Serial.print(functionToRun[i]);
   }
@@ -327,13 +377,12 @@ int rcvCan(){
       sprintf(msgString, " REMOTE REQUEST FRAME");
       //Serial.print(msgString);
     } else {
-      Serial.print("RxBuf: ");
       for(byte i = 0; i<len; i++){
         msgString[i] = rxBuf[i];
         while(!Serial){}
-        Serial.print((int)rxBuf[i]);
+        Serial.print(rxBuf[i]);
       }
-      Serial.println();
+      Serial.println(" - RCVD CAN");
     }    
     delay(500);
     return len;
@@ -343,24 +392,26 @@ int rcvCan(){
 
 bool sndCan(byte *msg, int msg_len, int dest_id){
   byte canbuffer[8];
-  int i = 0;
   int q = dest_id;
-  for(i = 0;i < msg_len; i++){
+  for(int i = 0;i < msg_len; i++){
     if(!(i%8) && i > 0){
-      if(CAN0.sendMsgBuf(q, 8, canbuffer) == CAN_OK)        
-        Serial.println("CAN - Message Sent Successfully!");
+      if(CAN0.sendMsgBuf(q, 8, canbuffer) == CAN_OK)
+        Serial.println("- Sent CAN");     
+        //Serial.println("CAN - Message Sent Successfully!");
       else
         Serial.println("Error Sending CAN - Message...");
-      
-      q++;
     }
-    //Serial.println(msg[i]);
+    if(msg[i] > 29)
+      Serial.print(msg[i]);
+    else
+      Serial.print(msg[i]);
     canbuffer[i%8] = msg[i];
   }
   
-  canbuffer[msg_len % 8] = eot;
+  canbuffer[msg_len % 8] = eot[0];
   if(CAN0.sendMsgBuf(q, (msg_len)%8 + 1, canbuffer) == CAN_OK)
-    Serial.println("CAN - Message Sent Successfully!");
+    Serial.println("- Sent CAN");
+    //Serial.println("CAN - Message Sent Successfully!");
   else
     Serial.println("Error Sending CAN - Message...");
 }
