@@ -177,9 +177,10 @@ bool testDI(){
   sndCan("<TestResponse> <TestCase> testDI </TestCase> <Data>", strlen("<TestResponse> <TestCase> testDI </TestCase> <Data>"), 1);
   for(byte i = 0; i < DI_PINS*2; i++){
     sndCan("<DataPoint type=\"boolean\" name=\"", strlen("<DataPoint type=\"boolean\" name=\""), 1);
-    sndCan(&i, 1, 1); 
+    temp = i+48;
+    sndCan(&temp, 1, 1); 
     sndCan("\">", strlen("\">"), 1); 
-    temp = results[i];
+    temp = results[i]+48;
     sndCan(&temp, 1, 1);
     sndCan("</DataPoint>", strlen("</DataPoint>"), 1);
   }
