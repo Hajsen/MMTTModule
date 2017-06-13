@@ -307,7 +307,6 @@ void loop() {
   }
   runTest(functionToRun, functionToRun_len);
   functionToRun_len = 0;
-  while(true);
 }
 
 void runTest(char *functionToRun, int functionToRun_len){
@@ -391,26 +390,24 @@ int rcvCan(){
 
 bool sndCan(byte *msg, int msg_len, int dest_id){
   byte canbuffer[8];
+  int i = 0;
   int q = dest_id;
-  for(int i = 0;i < msg_len; i++){
-    if(!(i%8) && i > 0){
-      if(CAN0.sendMsgBuf(q, 8, canbuffer) == CAN_OK)
-        Serial.println("- Sent CAN");     
-        //Serial.println("CAN - Message Sent Successfully!");
+  for(i = 0;i < msg_len; i++){
+    Serial.println((char)msg[i]);
+    canbuffer[i%8] = msg[i];
+    if(!((i+1)%8) && i > 0){
+      if(CAN0.sendMsgBuf(q, 8, canbuffer) == CAN_OK)        
+        Serial.println("CAN - Message Sent Successfully!");
       else
         Serial.println("Error Sending CAN - Message...");
+      
+      q++;
     }
-    if(msg[i] > 29)
-      Serial.print(msg[i]);
-    else
-      Serial.print(msg[i]);
-    canbuffer[i%8] = msg[i];
   }
-  
+        
   canbuffer[msg_len % 8] = eot[0];
   if(CAN0.sendMsgBuf(q, (msg_len)%8 + 1, canbuffer) == CAN_OK)
-    Serial.println("- Sent CAN");
-    //Serial.println("CAN - Message Sent Successfully!");
+    Serial.println("CAN - Message Sent Successfully!");
   else
     Serial.println("Error Sending CAN - Message...");
 }
