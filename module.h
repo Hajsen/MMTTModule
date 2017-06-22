@@ -24,6 +24,9 @@ char wfa[] = "\7"; //wait for answer
 // CAN0 INT and CS
 #define CAN0_INT 8                              // Set INT to pin 2
 
+#define DIGITAL_OUT 0
+#define DI_PINS 4
+
 MCP_CAN CAN0(10);                               // Set CS to pin 11
 
 char functionToRun[30];

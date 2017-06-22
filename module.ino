@@ -6,6 +6,14 @@ void setup()
   canInit();
   setPinModes();
   while(!Serial){}
+  Serial.print("Waiting for input");
+  
+  pinMode(DIGITAL_OUT, OUTPUT);
+  Serial.println("Testing DO HIGH");    
+  digitalWrite(DIGITAL_OUT, LOW);
+  
+  while(!Serial.available()){}
+  Serial.println(" OK");
 }
 
 
@@ -14,7 +22,7 @@ bool execMTFunctionCall(char *functionCall, size_t funclen){
     sndCan(funclen, 1, 1);
     
     if(debug)
-      Serial.print("Functioncall size of  ");
+      Serial.print("Functioncall size of ");
       for(int i = 0; i < funclen; i++){
         Serial.print(functionCall[i]);
       }
@@ -42,16 +50,14 @@ bool testDI(){
   pinMode(DIGITAL_IN, INPUT);
 
   char result[128];
-  for(int q = 0; q < 2; q++){
-    Serial.println();
-    Serial.print("DI WHEN STATE IS : ");
-    Serial.print(q);
+
     Serial.println();
     Serial.println("347 | result");
     for(int i = 0; i < (DO_PINS); i++){
       digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
       digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
       digitalWrite(DE_MUX_C, (i/((int)pow(2, 2)))%2); //takes the binary value of position 2 and assigns DE_MUX_B
+      delay(100);
       readPins[i] = digitalRead(DIGITAL_IN);
       Serial.println();
       Serial.print((i/((int)pow(2, 0)))%2);
@@ -59,33 +65,28 @@ bool testDI(){
       Serial.print((i/((int)pow(2, 2)))%2);
       Serial.print(" | ");
       Serial.print(readPins[i]);
+      delay(100);
     }
     Serial.println();
-    Serial.println("Press enter to switch state!");
-    while(Serial.available() == 0){}
-    Serial.read();
-  }
-  Serial.println("Press enter to go to next test!");
-  while(Serial.available() == 0){}
+  
+    delay(1000);
   Serial.read();  
   return true;
 }
 
-#define DIGITAL_OUT 0
-#define DI_PINS 4
+
 bool testDO(){
   pinMode(DIGITAL_OUT, OUTPUT);
   Serial.println("Testing DO HIGH");    
   digitalWrite(DIGITAL_OUT, HIGH);
-  for(int i = 0; i < (DI_PINS - 1); i+=2){
     Serial.print("Testing pin: ");
-    Serial.print(i);
+    Serial.print(1);
     Serial.println();
-    digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
-    digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
+    digitalWrite(DE_MUX_A, 1); //takes the binary value of position 0 and assigns DE_MUX_A
+    digitalWrite(DE_MUX_B, 0); //takes the binary value of position 1 and assigns DE_MUX_B
     Serial.println("Press enter to go to next pin!");
     while(Serial.available() == 0){}
-  }
+  /*
   Serial.println("Press enter to go to next test!");
   while(Serial.available() == 0){}
   Serial.println("Testing DO HIGH");
@@ -95,7 +96,7 @@ bool testDO(){
     Serial.print(i);
     digitalWrite(DE_MUX_A, (i/((int)pow(2, 0)))%2); //takes the binary value of position 0 and assigns DE_MUX_A
     digitalWrite(DE_MUX_B, (i/((int)pow(2, 1)))%2); //takes the binary value of position 1 and assigns DE_MUX_B
-  }
+  }*/
   return true;
 }
 
@@ -196,14 +197,17 @@ void setPinModes(){
 }
 
 void loop() {
+  
+  //Serial.println("Running testDO()");
+  //testDO();
   /*
-  Serial.println("Running testDO()");
-  testDO();
   Serial.println("Press enter to run DI");
   while(Serial.available() == 0){}
-  Serial.read();  
+  Serial.read();
+  */
   Serial.println("Running testDI()");
   testDI();
+  /*
   Serial.println("Press enter to run 20mAO");
   while(Serial.available() == 0){}
   Serial.read();
@@ -212,10 +216,8 @@ void loop() {
   Serial.println("Press enter to run PWM");
   while(Serial.available() == 0){}
   Serial.read();
-  */
   Serial.println("Running testPWM()"); 
   testPWM();
-  /*
   Serial.println("Press enter to run pt100");
   while(Serial.available() == 0){}
   Serial.read();  
